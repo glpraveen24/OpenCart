@@ -2,18 +2,22 @@ package com.opencart.stepDefinitions;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.ResourceBundle;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
+import org.junit.Assert;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 
 import com.opencart.pageObjects.AccountPage;
 import com.opencart.pageObjects.HomePage;
 import com.opencart.pageObjects.LoginPage;
+import com.opencart.utilities.DataReader;
 
-import io.cucumber.java.Before;
+import io.cucumber.java.After;
 import io.cucumber.java.en.*;
 
 public class Steps {
@@ -26,18 +30,20 @@ public class Steps {
 	Logger logger; // for logging
 	ResourceBundle rb; // for reading properties file
 	String br;
-
-	@Before
-	public void setUp() {
-		logger = (Logger) LogManager.getLogger(this.getClass());
-	}
+	List<HashMap<String, String>> datamap;
 
 	@Given("User Launch Browser")
 	public void user_launch_browser() {
-
+		logger = (Logger) LogManager.getLogger(this.getClass());
 		driver = new ChromeDriver();
 		logger.info("Launched browser");
+		driver.manage().window().maximize();
 
+	}
+
+	@After
+	public void closeBrowser() {
+		driver.quit();
 	}
 
 	@Given("opens URL {string}")
@@ -91,6 +97,44 @@ public class Steps {
 			logger.info("Login feature failed");
 		}
 
+	}
+
+	@Then("the user should be redirected to the MyAccount Page by passing email and password with excel row {string}")
+	public void the_user_should_be_redirected_to_the_my_account_page_by_passing_email_and_password_with_excel_row(
+			String rows) {
+		datamap = DataReader.data(System.getProperty("user.dir") + "\\testData\\Opencart_LoginData.xlsx", "Sheet1");
+
+		int index = Integer.parseInt(rows) - 1;
+		String email = datamap.get(index).get("username");
+		String pwd = datamap.get(index).get("password");
+		String exp_res = datamap.get(index).get("res");
+
+		lp = new LoginPage(driver);
+		lp.setEmail(email);
+		lp.setPassword(pwd);
+
+		lp.clickLogin();
+		ap = new AccountPage(driver);
+		try {
+			boolean targetpage = ap.isEditAccountTxtDisplayed();
+			 
+			if (targetpage == true && exp_res.equalsIgnoreCase("valid")) {
+				Assert.assertTrue(true);
+				
+			} else if (targetpage == false && exp_res.equalsIgnoreCase("Invalid")) {
+				Assert.assertTrue(true);
+				
+			} else {
+				Assert.assertTrue(false);
+				
+			}
+
+		} catch (
+
+		Exception e) {
+			System.err.println(e);
+			Assert.assertTrue(false);
+		}
 	}
 
 }
